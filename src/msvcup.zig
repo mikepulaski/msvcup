@@ -3437,7 +3437,13 @@ fn getPackages(
                 out_payloads[out_payload_count] = .{
                     .url_decoded = allocUrlPercentDecoded(allocator, payload_json.url) catch |e| oom(e),
                     .sha256 = payload_json.sha256,
-                    .file_name = allocator.dupe(u8, payload_json.fileName) catch |e| oom(e),
+                    .file_name = file_name_blk: {
+                        // The 10.0.26100 and 10.0.28000 SDK payloads use "Installers/..." where
+                        // older ones use "Installers\...".
+                        const normalized = allocator.dupe(u8, payload_json.fileName) catch |e| oom(e);
+                        std.mem.replaceScalar(u8, normalized, '/', '\\');
+                        break :file_name_blk normalized;
+                    },
                 };
                 out_payload_count += 1;
             }
